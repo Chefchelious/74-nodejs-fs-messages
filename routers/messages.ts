@@ -8,6 +8,14 @@ const messagesRouter = express.Router();
 // const pathName = './messages';
 const pathName = path.resolve(__dirname, '../messages');
 
+const createDir = async () => {
+  try {
+    await fs.access(pathName);
+  } catch {
+    await fs.mkdir(pathName, { recursive: true });
+  }
+};
+
 console.log(pathName, 'pathName');
 
 messagesRouter.get('/', (_, res) => {
@@ -24,7 +32,9 @@ messagesRouter.post('/', async (req, res) => {
       message,
       datetime: new Date().toISOString(),
     };
-    
+
+    await createDir();
+
     const filePath = path.normalize(`${pathName}/${randomUUID()}.txt`);
     await fs.writeFile(filePath, JSON.stringify(data));
 
