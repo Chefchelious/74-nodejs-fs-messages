@@ -1,5 +1,6 @@
 node_modules
 .idea
+messages
 
 .vscode/*
 !.vscode/settings.json

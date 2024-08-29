@@ -1,7 +1,11 @@
 import express from 'express';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { randomUUID, UUID } from 'crypto';
+
+interface IMessage {
+  message: string;
+  datetime: string;
+}
 
 const messagesRouter = express.Router();
 
@@ -16,10 +20,32 @@ const createDir = async () => {
   }
 };
 
-console.log(pathName, 'pathName');
+const getMessages = async (): Promise<IMessage[]> => {
+  try {
+    const files = await fs.readdir(pathName);
 
-messagesRouter.get('/', (_, res) => {
-  res.send('last 5 messages will be here');
+    const messages = await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(pathName, file);
+        const content = await fs.readFile(filePath, 'utf-8');
+        return JSON.parse(content);
+      })
+    );
+
+    return messages;
+  } catch (e: unknown) {
+    throw e;
+  }
+};
+
+messagesRouter.get('/', async (_, res) => {
+  try {
+    const messages = await getMessages();
+
+    res.send(messages.slice(-5));
+  } catch (e: unknown) {
+    res.status(500).send('Internal server error');
+  }
 });
 
 messagesRouter.post('/', async (req, res) => {
@@ -33,9 +59,11 @@ messagesRouter.post('/', async (req, res) => {
       datetime: new Date().toISOString(),
     };
 
+    const timestamp = new Date(data.datetime).getTime();
+
     await createDir();
 
-    const filePath = path.normalize(`${pathName}/${randomUUID()}.txt`);
+    const filePath = path.normalize(`${pathName}/${timestamp}.txt`);
     await fs.writeFile(filePath, JSON.stringify(data));
 
     res.status(201).send(data);
